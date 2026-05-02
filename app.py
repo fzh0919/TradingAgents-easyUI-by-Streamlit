@@ -5,6 +5,7 @@ import time
 from dotenv import load_dotenv
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.llm_clients.model_catalog import MODEL_OPTIONS
 
 # Ensure environment variables are loaded
 load_dotenv()
@@ -98,27 +99,39 @@ st.sidebar.markdown("<p class='blue-text' style='margin-bottom: 2px;'>LLM Option
 provider = st.sidebar.selectbox(
     "Provider",
     ["openai", "google", "anthropic", "xai", "deepseek", "qwen", "glm", "openrouter", "ollama", "azure"],
-    index=4  # Defaults to deepseek (Rank 1 from your current stack setup)
+    index=4  # Defaults to deepseek
 )
 
 ticker = st.sidebar.text_input("Ticker Symbol", value="NVDA", max_chars=12).upper().strip()
 
-# Set up defaults based on provider
-default_deep = "gpt-5.4"
-default_quick = "gpt-5.4-mini"
+# Helper to fetch dropdown options based on provider
+def get_model_choices(prov: str, mode: str) -> list:
+    prov_lower = prov.lower()
+    if prov_lower in MODEL_OPTIONS and mode in MODEL_OPTIONS[prov_lower]:
+        # returns [(display_name, value), ...]
+        return MODEL_OPTIONS[prov_lower][mode]
+    return [("Default Model", "default")]
 
-if provider == "deepseek":
-    default_deep = "deepseek-reasoner"
-    default_quick = "deepseek-chat"
-elif provider == "google":
-    default_deep = "gemini-2.5-pro"
-    default_quick = "gemini-2.5-flash"
-elif provider == "openai":
-    default_deep = "gpt-4o"
-    default_quick = "gpt-4o-mini"
+quick_opts = get_model_choices(provider, "quick")
+deep_opts = get_model_choices(provider, "deep")
 
-deep_think_llm = st.sidebar.text_input("Deep Thinking Model", value=default_deep)
-quick_think_llm = st.sidebar.text_input("Quick Thinking Model", value=default_quick)
+# Format options for selectbox
+quick_display = [opt[0] for opt in quick_opts]
+deep_display = [opt[0] for opt in deep_opts]
+
+# Streamlit Selectbox for Quick & Deep Thinking models
+selected_quick_display = st.sidebar.selectbox("Quick Thinking Model", options=quick_display)
+selected_deep_display = st.sidebar.selectbox("Deep Thinking Model", options=deep_display)
+
+# Extract actual model IDs from choice
+quick_think_llm = next((opt[1] for opt in quick_opts if opt[0] == selected_quick_display), "default")
+deep_think_llm = next((opt[1] for opt in deep_opts if opt[0] == selected_deep_display), "default")
+
+# Fallback handling for "custom" option
+if quick_think_llm == "custom" or quick_think_llm == "default":
+    quick_think_llm = st.sidebar.text_input("Enter Custom Quick Model ID", value="")
+if deep_think_llm == "custom" or deep_think_llm == "default":
+    deep_think_llm = st.sidebar.text_input("Enter Custom Deep Model ID", value="")
 
 st.sidebar.markdown("<hr style='margin: 12px 0;'/>", unsafe_allow_html=True)
 
@@ -140,9 +153,16 @@ for a in analysts:
 
 st.sidebar.markdown("<hr style='margin: 12px 0;'/>", unsafe_allow_html=True)
 
-# Debate Rounds Sliders
-max_debate_rounds = st.sidebar.slider("Debate Rounds", min_value=1, max_value=5, value=1)
-max_risk_discuss_rounds = st.sidebar.slider("Risk Assessment Rounds", min_value=1, max_value=5, value=1)
+# Debate depth mappings
+ROUND_LABELS = ["Less", "Default", "More", "Thorough"]
+ROUND_VALUES = {"Less": 1, "Default": 2, "More": 3, "Thorough": 5}
+
+# Selectbox using human-readable levels instead of numbers
+debate_level = st.sidebar.selectbox("Debate Rounds", options=ROUND_LABELS, index=0)
+risk_level = st.sidebar.selectbox("Risk Assessment Rounds", options=ROUND_LABELS, index=0)
+
+max_debate_rounds = ROUND_VALUES[debate_level]
+max_risk_discuss_rounds = ROUND_VALUES[risk_level]
 
 # Advanced Configuration
 checkpoint_enabled = st.sidebar.checkbox("Enable Checkpointing", value=False)
@@ -189,8 +209,10 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
             # Construct custom configuration matching TradingAgents DEFAULT_CONFIG pattern
             cfg = DEFAULT_CONFIG.copy()
             cfg["llm_provider"] = provider
-            cfg["deep_think_llm"] = deep_think_llm
-            cfg["quick_think_llm"] = quick_think_llm
+            if quick_think_llm:
+                cfg["quick_think_llm"] = quick_think_llm
+            if deep_think_llm:
+                cfg["deep_think_llm"] = deep_think_llm
             cfg["max_debate_rounds"] = max_debate_rounds
             cfg["max_risk_discuss_rounds"] = max_risk_discuss_rounds
             cfg["checkpoint_enabled"] = checkpoint_enabled

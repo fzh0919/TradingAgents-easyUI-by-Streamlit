@@ -2,5 +2,5 @@
 echo Starting TradingAgents Streamlit Web UI...
 echo Checking prerequisites...
 python -m pip install -e . python-dotenv
-python -m streamlit run app.py
+python -m streamlit run app.py --server.enableCORS=false --server.enableXsrfProtection=false --browser.gatherUsageStats=false --server.headless=true
 pause
