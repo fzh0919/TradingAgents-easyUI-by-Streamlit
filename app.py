@@ -132,39 +132,7 @@ with col2:
         unsafe_allow_html=True,
     )
 
-# ⚙️ Settings & API Configuration Expander
-st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
-with st.expander("⚙️ Settings & API Keys"):
-    st.markdown("<h4 style='color: #202124;'>Securely Store and Edit your Provider & Service API keys</h4>", unsafe_allow_html=True)
-    
-    col_k1, col_k2 = st.columns(2)
-    with col_k1:
-        openai_key = st.text_input("OpenAI Key", value=os.getenv("OPENAI_API_KEY", ""), type="password")
-        google_key = st.text_input("Google Gemini Key", value=os.getenv("GOOGLE_API_KEY", ""), type="password")
-        anthropic_key = st.text_input("Anthropic Key", value=os.getenv("ANTHROPIC_API_KEY", ""), type="password")
-        xai_key = st.text_input("xAI Key", value=os.getenv("XAI_API_KEY", ""), type="password")
-        deepseek_key = st.text_input("DeepSeek Key", value=os.getenv("DEEPSEEK_API_KEY", ""), type="password")
-        
-    with col_k2:
-        dashscope_key = st.text_input("DashScope/Qwen Key", value=os.getenv("DASHSCOPE_API_KEY", ""), type="password")
-        zhipu_key = st.text_input("GLM/Zhipu Key", value=os.getenv("ZHIPU_API_KEY", ""), type="password")
-        openrouter_key = st.text_input("OpenRouter Key", value=os.getenv("OPENROUTER_API_KEY", ""), type="password")
-        alpha_key = st.text_input("Alpha Vantage Key", value=os.getenv("ALPHA_VANTAGE_API_KEY", ""), type="password")
 
-    if st.button("💾 Save API Keys"):
-        key_map = {
-            "OPENAI_API_KEY": openai_key,
-            "GOOGLE_API_KEY": google_key,
-            "ANTHROPIC_API_KEY": anthropic_key,
-            "XAI_API_KEY": xai_key,
-            "DEEPSEEK_API_KEY": deepseek_key,
-            "DASHSCOPE_API_KEY": dashscope_key,
-            "ZHIPU_API_KEY": zhipu_key,
-            "OPENROUTER_API_KEY": openrouter_key,
-            "ALPHA_VANTAGE_API_KEY": alpha_key,
-        }
-        update_env_file(key_map)
-        st.success("API Keys saved successfully directly into process environment and .env file.")
 
 # Brief Info Box
 st.markdown(
@@ -257,6 +225,35 @@ max_risk_discuss_rounds = ROUND_VALUES[risk_level]
 
 # Advanced Configuration
 checkpoint_enabled = st.sidebar.checkbox("Enable Checkpointing", value=False)
+
+st.sidebar.markdown("<hr style='margin: 12px 0;'/>", unsafe_allow_html=True)
+
+# ⚙️ API Keys in Sidebar
+with st.sidebar.expander("⚙️ API Keys"):
+    openai_key = st.text_input("OpenAI Key", value=os.getenv("OPENAI_API_KEY", ""), type="password")
+    google_key = st.text_input("Google Gemini Key", value=os.getenv("GOOGLE_API_KEY", ""), type="password")
+    anthropic_key = st.text_input("Anthropic Key", value=os.getenv("ANTHROPIC_API_KEY", ""), type="password")
+    xai_key = st.text_input("xAI Key", value=os.getenv("XAI_API_KEY", ""), type="password")
+    deepseek_key = st.text_input("DeepSeek Key", value=os.getenv("DEEPSEEK_API_KEY", ""), type="password")
+    dashscope_key = st.text_input("DashScope/Qwen Key", value=os.getenv("DASHSCOPE_API_KEY", ""), type="password")
+    zhipu_key = st.text_input("GLM/Zhipu Key", value=os.getenv("ZHIPU_API_KEY", ""), type="password")
+    openrouter_key = st.text_input("OpenRouter Key", value=os.getenv("OPENROUTER_API_KEY", ""), type="password")
+    alpha_key = st.text_input("Alpha Vantage Key", value=os.getenv("ALPHA_VANTAGE_API_KEY", ""), type="password")
+
+    if st.button("💾 Save API Keys"):
+        key_map = {
+            "OPENAI_API_KEY": openai_key,
+            "GOOGLE_API_KEY": google_key,
+            "ANTHROPIC_API_KEY": anthropic_key,
+            "XAI_API_KEY": xai_key,
+            "DEEPSEEK_API_KEY": deepseek_key,
+            "DASHSCOPE_API_KEY": dashscope_key,
+            "ZHIPU_API_KEY": zhipu_key,
+            "OPENROUTER_API_KEY": openrouter_key,
+            "ALPHA_VANTAGE_API_KEY": alpha_key,
+        }
+        update_env_file(key_map)
+        st.success("API Keys saved!")
 
 
 # Trigger Action Button
