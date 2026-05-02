@@ -10,6 +10,35 @@ from tradingagents.llm_clients.model_catalog import MODEL_OPTIONS
 # Ensure environment variables are loaded
 load_dotenv()
 
+# Function to update keys directly in the .env file
+def update_env_file(key_data: dict):
+    env_path = ".env"
+    
+    # Read existing lines
+    existing_lines = []
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            existing_lines = f.readlines()
+            
+    # Parse existing keys
+    env_dict = {}
+    for line in existing_lines:
+        if "=" in line and not line.startswith("#"):
+            k, v = line.split("=", 1)
+            env_dict[k.strip()] = v.strip()
+            
+    # Update with new values
+    for k, v in key_data.items():
+        if v: # Only update if not empty
+            env_dict[k] = v
+            os.environ[k] = v # Immediately set in process environment
+            
+    # Write back to file
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.write("# LLM Providers and Data API keys (Set via Web UI)\n")
+        for k, v in env_dict.items():
+            f.write(f"{k}={v}\n")
+
 # Setup professional page configuration
 st.set_page_config(
     page_title="TradingAgents - Multi-Agent Intelligence",
@@ -88,6 +117,69 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ----------------- MAIN AREA HEADER -----------------
+col1, col2 = st.columns([1, 10])
+with col1:
+    st.markdown("<h1 style='font-size: 3.5rem; margin-top:-10px;'>📈</h1>", unsafe_allow_html=True)
+with col2:
+    st.markdown(
+        """
+        <h1 style='margin:0; padding:0;'>TradingAgents Platform</h1>
+        <p style='color: #5f6368; font-size: 1.1rem; margin-top: 2px;'>
+            Multi-Agent LLM Financial Trading Framework
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ⚙️ Settings & API Configuration Expander
+st.markdown("<div style='height:10px;'></div>", unsafe_allow_html=True)
+with st.expander("⚙️ Settings & API Keys"):
+    st.markdown("<h4 style='color: #202124;'>Securely Store and Edit your Provider & Service API keys</h4>", unsafe_allow_html=True)
+    
+    col_k1, col_k2 = st.columns(2)
+    with col_k1:
+        openai_key = st.text_input("OpenAI Key", value=os.getenv("OPENAI_API_KEY", ""), type="password")
+        google_key = st.text_input("Google Gemini Key", value=os.getenv("GOOGLE_API_KEY", ""), type="password")
+        anthropic_key = st.text_input("Anthropic Key", value=os.getenv("ANTHROPIC_API_KEY", ""), type="password")
+        xai_key = st.text_input("xAI Key", value=os.getenv("XAI_API_KEY", ""), type="password")
+        deepseek_key = st.text_input("DeepSeek Key", value=os.getenv("DEEPSEEK_API_KEY", ""), type="password")
+        
+    with col_k2:
+        dashscope_key = st.text_input("DashScope/Qwen Key", value=os.getenv("DASHSCOPE_API_KEY", ""), type="password")
+        zhipu_key = st.text_input("GLM/Zhipu Key", value=os.getenv("ZHIPU_API_KEY", ""), type="password")
+        openrouter_key = st.text_input("OpenRouter Key", value=os.getenv("OPENROUTER_API_KEY", ""), type="password")
+        alpha_key = st.text_input("Alpha Vantage Key", value=os.getenv("ALPHA_VANTAGE_API_KEY", ""), type="password")
+
+    if st.button("💾 Save API Keys"):
+        key_map = {
+            "OPENAI_API_KEY": openai_key,
+            "GOOGLE_API_KEY": google_key,
+            "ANTHROPIC_API_KEY": anthropic_key,
+            "XAI_API_KEY": xai_key,
+            "DEEPSEEK_API_KEY": deepseek_key,
+            "DASHSCOPE_API_KEY": dashscope_key,
+            "ZHIPU_API_KEY": zhipu_key,
+            "OPENROUTER_API_KEY": openrouter_key,
+            "ALPHA_VANTAGE_API_KEY": alpha_key,
+        }
+        update_env_file(key_map)
+        st.success("API Keys saved successfully directly into process environment and .env file.")
+
+# Brief Info Box
+st.markdown(
+    """
+    <div class='premium-card'>
+        <p style='margin:0; color: #202124;'>
+            Run multi-agent trading simulations by specifying a ticker symbol and selecting active agents. 
+            The system performs deep analysis, debates the options, and issues a structured investment decision.
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 # ----------------- SIDEBAR -----------------
 st.sidebar.markdown(
     "<h2 style='text-align: center; margin-bottom: 1rem; color: #202124;'>🔧 Configuration</h2>",
@@ -108,7 +200,6 @@ ticker = st.sidebar.text_input("Ticker Symbol", value="NVDA", max_chars=12).uppe
 def get_model_choices(prov: str, mode: str) -> list:
     prov_lower = prov.lower()
     if prov_lower in MODEL_OPTIONS and mode in MODEL_OPTIONS[prov_lower]:
-        # returns [(display_name, value), ...]
         return MODEL_OPTIONS[prov_lower][mode]
     return [("Default Model", "default")]
 
@@ -168,34 +259,6 @@ max_risk_discuss_rounds = ROUND_VALUES[risk_level]
 checkpoint_enabled = st.sidebar.checkbox("Enable Checkpointing", value=False)
 
 
-# ----------------- MAIN AREA -----------------
-col1, col2 = st.columns([1, 10])
-with col1:
-    st.markdown("<h1 style='font-size: 3.5rem; margin-top:-10px;'>📈</h1>", unsafe_allow_html=True)
-with col2:
-    st.markdown(
-        """
-        <h1 style='margin:0; padding:0;'>TradingAgents Platform</h1>
-        <p style='color: #5f6368; font-size: 1.1rem; margin-top: 2px;'>
-            Multi-Agent LLM Financial Trading Framework
-        </p>
-        """,
-        unsafe_allow_html=True,
-    )
-
-# Brief Info Box
-st.markdown(
-    """
-    <div class='premium-card'>
-        <p style='margin:0; color: #202124;'>
-            Run multi-agent trading simulations by specifying a ticker symbol and selecting active agents. 
-            The system performs deep analysis, debates the options, and issues a structured investment decision.
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 # Trigger Action Button
 if st.button("🚀 Run Analysis Graph", use_container_width=True):
     if not ticker:
@@ -206,7 +269,6 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
         st.markdown(f"### Running **{ticker}** on **{analysis_date}**...")
         
         with st.spinner("Executing agent nodes, tools, and debates... Please wait."):
-            # Construct custom configuration matching TradingAgents DEFAULT_CONFIG pattern
             cfg = DEFAULT_CONFIG.copy()
             cfg["llm_provider"] = provider
             if quick_think_llm:
@@ -217,7 +279,6 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
             cfg["max_risk_discuss_rounds"] = max_risk_discuss_rounds
             cfg["checkpoint_enabled"] = checkpoint_enabled
 
-            # Build and execute the Graph
             try:
                 start_time = time.time()
                 ta = TradingAgentsGraph(
@@ -231,14 +292,12 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
                 
                 st.success(f"Analysis completed in {elapsed_time:.2f} seconds!")
                 
-                # Render state out via tabs
                 st.markdown("<div style='height:20px;'></div>", unsafe_allow_html=True)
                 tab1, tab2, tab3 = st.tabs(["🎯 Summary & Decision", "📝 Analyst Reports", "💬 Debate & Logic"])
                 
                 with tab1:
                     st.markdown("<h3 class='blue-text'>Summary Analysis</h3>", unsafe_allow_html=True)
                     
-                    # Highlight Final Trade decision
                     decision_str = final_state.get("final_trade_decision", "N/A")
                     st.markdown(
                         f"""
@@ -250,7 +309,6 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
                         unsafe_allow_html=True,
                     )
                     
-                    # Highlight Signal
                     st.markdown(
                         f"""
                         <div class='premium-card' style='background-color: #e8f0fe; border-left: 6px solid #34A853;'>
@@ -261,7 +319,6 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
                         unsafe_allow_html=True,
                     )
                     
-                    # Portfolio Manager final investment plan
                     plan_str = final_state.get("investment_plan", "N/A")
                     st.markdown(
                         f"""
@@ -276,7 +333,6 @@ if st.button("🚀 Run Analysis Graph", use_container_width=True):
                 with tab2:
                     st.markdown("<h3 class='blue-text'>Agent Observations</h3>", unsafe_allow_html=True)
                     
-                    # Sub-tabs for each Analyst report
                     report_types = {
                         "market": "Market Report",
                         "sentiment": "Sentiment Report",
