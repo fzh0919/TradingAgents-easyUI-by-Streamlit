@@ -14,7 +14,7 @@
 | 🎨 **Google-Themed Premium Design** | Gradient header, card-based layout, smooth tab transitions |
 | 🔽 **Model Dropdowns** | Pre-populated model lists from the built-in catalog — no manual typing |
 | 📈 **Human-Readable Settings** | Debate & risk rounds shown as "Less / Default / More / Thorough" instead of raw numbers |
-| 🚀 **One-Click Launch** | `run.bat` auto-installs dependencies, opens Chrome, and runs the server |
+| 🚀 **One-Click Launch** | `run.bat` opens Chrome, and runs the server |
 
 ## News
 - [2026-05] 🆕 **TradingAgents Easy UI v1.0.0** — Streamlit Web UI launched on this fork. See [Release Notes](#release-notes).
