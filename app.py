@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.llm_clients.model_catalog import MODEL_OPTIONS
+from cli.stats_handler import StatsCallbackHandler
 
 load_dotenv()
 
@@ -294,11 +295,15 @@ if st.session_state.is_running and st.session_state.result is None:
         try:
             start_time = time.time()
 
-            # Build graph
+            # Token/LLM usage tracking (same handler as CLI)
+            stats_handler = StatsCallbackHandler()
+
+            # Build graph with stats callback
             ta = TradingAgentsGraph(
                 selected_analysts=selected_analysts,
                 debug=False,
                 config=cfg,
+                callbacks=[stats_handler],
             )
             ta.ticker = ticker  # needed by _log_state → safe_ticker_component
 
@@ -338,13 +343,25 @@ if st.session_state.is_running and st.session_state.result is None:
                                 else:
                                     st.info(f"{icon} **{step}**\n\n⏳ {desc}")
 
+            def format_tokens(n):
+                """Format token count for compact display."""
+                if n >= 1_000_000:
+                    return f"{n / 1_000_000:.1f}M"
+                if n >= 1_000:
+                    return f"{n / 1_000:.1f}K"
+                return str(n)
+
             def render_metrics():
                 elapsed = time.time() - start_time
                 mins, secs = divmod(int(elapsed), 60)
+                stats = stats_handler.get_stats()
                 with metrics_placeholder.container():
-                    mc1, mc2 = st.columns(2)
+                    mc1, mc2, mc3, mc4 = st.columns(4)
                     mc1.metric("⏱️ Elapsed", f"{mins}m {secs}s")
                     mc2.metric("📊 Progress", f"{len(completed_set)}/{total_steps} agents")
+                    tok_label = f"↑{format_tokens(stats['tokens_in'])} ↓{format_tokens(stats['tokens_out'])}" if (stats['tokens_in'] or stats['tokens_out']) else "--"
+                    mc3.metric("🪙 Tokens", tok_label)
+                    mc4.metric("🤖 LLM Calls", str(stats['llm_calls']))
 
             # Initial render
             render_grid()
@@ -371,41 +388,42 @@ if st.session_state.is_running and st.session_state.result is None:
 
             # ---- Stream the graph ----
             final_state = None
-            for chunk in ta.graph.stream(init_state, **args):
-                if st.session_state.cancel_requested:
-                    cancelled = True
-                    break
+            with st.spinner("🔄 Analysis in progress — agents are working..."):
+                for chunk in ta.graph.stream(init_state, **args):
+                    if st.session_state.cancel_requested:
+                        cancelled = True
+                        break
 
-                # With stream_mode="values", each chunk is the complete state dict
-                final_state = chunk
+                    # With stream_mode="values", each chunk is the complete state dict
+                    final_state = chunk
 
-                # Detect which nodes just completed
-                newly = detect_completed(chunk, completed_set)
-                for n in newly:
-                    completed_set.add(n)
-                    completed_list.append(n)
+                    # Detect which nodes just completed
+                    newly = detect_completed(chunk, completed_set)
+                    for n in newly:
+                        completed_set.add(n)
+                        completed_list.append(n)
 
-                # Update progress bar
-                pct = min(len(completed_set) / total_steps, 1.0) if total_steps > 0 else 0
-                progress_bar.progress(pct)
+                    # Update progress bar
+                    pct = min(len(completed_set) / total_steps, 1.0) if total_steps > 0 else 0
+                    progress_bar.progress(pct)
 
-                # Update status banner
-                if completed_list:
-                    latest = completed_list[-1]
-                    icon, desc = "⚙️", f"{latest} completed"
-                    for key, (ic, ds) in NODE_INFO.items():
-                        if key in latest:
-                            icon, desc = ic, ds
-                            break
-                    status_container.markdown(
-                        f"<div style='padding:12px 16px;background:#e8f0fe;border-radius:8px;"
-                        f"border-left:4px solid #4285F4;font-size:1.05rem'>"
-                        f"{icon} <b>{latest}</b> — {desc}</div>",
-                        unsafe_allow_html=True,
-                    )
+                    # Update status banner
+                    if completed_list:
+                        latest = completed_list[-1]
+                        icon, desc = "⚙️", f"{latest} completed"
+                        for key, (ic, ds) in NODE_INFO.items():
+                            if key in latest:
+                                icon, desc = ic, ds
+                                break
+                        status_container.markdown(
+                            f"<div style='padding:12px 16px;background:#e8f0fe;border-radius:8px;"
+                            f"border-left:4px solid #4285F4;font-size:1.05rem'>"
+                            f"{icon} <b>{latest}</b> — {desc}</div>",
+                            unsafe_allow_html=True,
+                        )
 
-                render_grid()
-                render_metrics()
+                    render_grid()
+                    render_metrics()
 
             # ---- Post-stream handling ----
             if cancelled:
@@ -440,10 +458,15 @@ if st.session_state.is_running and st.session_state.result is None:
                 progress_bar.progress(1.0)
                 status_container.empty()
 
+                final_stats = stats_handler.get_stats()
                 st.session_state.result = {
                     "final_state": final_state,
                     "signal": signal,
                     "elapsed": elapsed_time,
+                    "tokens_in": final_stats["tokens_in"],
+                    "tokens_out": final_stats["tokens_out"],
+                    "llm_calls": final_stats["llm_calls"],
+                    "tool_calls": final_stats["tool_calls"],
                 }
                 st.session_state.is_running = False
                 st.rerun()
@@ -464,8 +487,17 @@ if st.session_state.result is not None:
     signal = res["signal"]
     elapsed = res["elapsed"]
     mins, secs = divmod(int(elapsed), 60)
+    tok_in = res.get("tokens_in", 0)
+    tok_out = res.get("tokens_out", 0)
+    llm_calls = res.get("llm_calls", 0)
+    tool_calls = res.get("tool_calls", 0)
 
-    st.metric("⏱️ Total Analysis Time", f"{mins}m {secs}s")
+    # Stats bar
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    sc1.metric("⏱️ Total Time", f"{mins}m {secs}s")
+    sc2.metric("🪙 Tokens", f"↑{tok_in:,}  ↓{tok_out:,}")
+    sc3.metric("🤖 LLM Calls", str(llm_calls))
+    sc4.metric("🔧 Tool Calls", str(tool_calls))
     st.success("✅ Analysis completed successfully!")
 
     tab1, tab2, tab3 = st.tabs(["🎯 Summary & Decision", "📝 Analyst Reports", "💬 Debate & Logic"])

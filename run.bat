@@ -1,8 +1,5 @@
 @echo off
-echo Starting TradingAgents Streamlit Web UI...
-echo Checking prerequisites...
-python -m pip install -e . python-dotenv >nul 2>&1
-echo Launching browser...
+cd /d "%~dp0"
 start http://localhost:8501
-start /min "" python -m streamlit run app.py --server.enableCORS=false --server.enableXsrfProtection=false --browser.gatherUsageStats=false --server.headless=true
+start /min "" D:\Python\python.exe -m streamlit run "%~dp0app.py" --server.enableCORS=false --server.enableXsrfProtection=false --browser.gatherUsageStats=false --server.headless=true
 exit
