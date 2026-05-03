@@ -11,10 +11,10 @@
 | ⏱️ **Live Metrics** | Elapsed time and agent progress counter update in real-time during analysis |
 | ⛔ **Run / Stop Controls** | Start and interrupt analysis with responsive buttons |
 | 🔐 **Sidebar API Key Management** | Securely input and persist API keys (masked, saved to `.env`) |
-| 🎨 **Google-Themed Premium Design** | Gradient header, card-based layout, smooth tab transitions |
+| 🎨 **Premium UI Design** | Gradient header, card-based layout, smooth tab transitions |
 | 🔽 **Model Dropdowns** | Pre-populated model lists from the built-in catalog — no manual typing |
 | 📈 **Human-Readable Settings** | Debate & risk rounds shown as "Less / Default / More / Thorough" instead of raw numbers |
-| 🚀 **One-Click Launch** | `run.bat` opens Chrome, and runs the server |
+| 🚀 **One-Click Launch** | `run.bat` opens browser at `http://localhost:8501` and runs the server in background |
 
 ## News
 - [2026-05] 🆕 **TradingAgents Easy UI v1.0.0** — Streamlit Web UI launched on this fork. See [Release Notes](#release-notes).
