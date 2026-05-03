@@ -17,7 +17,8 @@
 | 🚀 **One-Click Launch** | `run.bat` opens browser at `http://localhost:8501` and runs the server in background |
 
 ## News
-- [2026-05] 🆕 **TradingAgents Easy UI v1.0.0** — Streamlit Web UI launched on this fork. See [Release Notes](#release-notes).
+- [2026-05] 🚀 **TradingAgents Easy UI v1.0.1** — UI enhancements, global font unification, markdown export, and robust dependency-checking Windows launcher.
+- [2026-05] 🆕 **TradingAgents Easy UI v1.0.0** — Streamlit Web UI launched on this fork.
 - [2026-04] **TradingAgents v0.2.4** released upstream with structured-output agents, LangGraph checkpoint resume, persistent decision log, and more. See [CHANGELOG.md](CHANGELOG.md).
 
 ## TradingAgents Framework

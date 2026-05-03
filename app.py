@@ -45,6 +45,17 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    /* Global font unification (Careful not to override Streamlit Material Icons in spans/divs) */
+    body, p, li, ul, ol, a, .stMarkdown {
+        font-family: 'Inter', 'Google Sans', 'Outfit', sans-serif !important;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Google Sans', 'Outfit', 'Inter', sans-serif !important;
+        color: #202124;
+    }
+    h1 { font-weight: 700; }
+    h2, h3, h4, h5, h6 { font-weight: 600; color: #3c4043; }
+    
     .top-gradient {
         height: 6px;
         background: linear-gradient(90deg, #4285F4 0%, #EA4335 25%, #FBBC05 50%, #34A853 75%, #4285F4 100%);
@@ -60,8 +71,6 @@ st.markdown(
         transform: translateY(-2px);
         box-shadow: 0 6px 18px rgba(0,0,0,0.08);
     }
-    h1 { font-family: 'Google Sans','Outfit','Inter',sans-serif; font-weight: 700; color: #202124; }
-    h2, h3 { font-family: 'Google Sans','Outfit','Inter',sans-serif; font-weight: 600; color: #3c4043; }
     .blue-text { color: #4285F4; font-weight: 600; }
     .green-text { color: #34A853; font-weight: 600; }
     .red-text { color: #EA4335; font-weight: 600; }
@@ -493,11 +502,10 @@ if st.session_state.result is not None:
     tool_calls = res.get("tool_calls", 0)
 
     # Stats bar
-    sc1, sc2, sc3, sc4 = st.columns(4)
+    sc1, sc2, sc3 = st.columns([1, 1.5, 1])
     sc1.metric("⏱️ Total Time", f"{mins}m {secs}s")
     sc2.metric("🪙 Tokens", f"↑{tok_in:,}  ↓{tok_out:,}")
     sc3.metric("🤖 LLM Calls", str(llm_calls))
-    sc4.metric("🔧 Tool Calls", str(tool_calls))
     st.success("✅ Analysis completed successfully!")
 
     tab1, tab2, tab3 = st.tabs(["🎯 Summary & Decision", "📝 Analyst Reports", "💬 Debate & Logic"])
@@ -506,27 +514,19 @@ if st.session_state.result is not None:
         st.markdown("<h3 class='blue-text'>Summary Analysis</h3>", unsafe_allow_html=True)
 
         decision_str = final_state.get("final_trade_decision", "N/A")
-        st.markdown(
-            f"<div class='premium-card' style='background-color:#f8f9fa;border-left:6px solid #4285F4'>"
-            f"<h4 style='color:#202124;margin:0 0 10px 0'>Final Recommendation Summary</h4>"
-            f"<p style='font-size:1.15rem;font-weight:500;color:#1a2530'>{decision_str}</p></div>",
-            unsafe_allow_html=True,
-        )
-
-        st.markdown(
-            f"<div class='premium-card' style='background-color:#e8f0fe;border-left:6px solid #34A853'>"
-            f"<h4 style='color:#1967d2;margin:0 0 10px 0'>Core Processed Signal</h4>"
-            f"<p style='font-size:1.25rem;font-weight:600;color:#1a73e8'>{signal}</p></div>",
-            unsafe_allow_html=True,
-        )
-
         plan_str = final_state.get("investment_plan", "N/A")
-        st.markdown(
-            f"<div class='premium-card' style='background-color:#f1f8e9'>"
-            f"<h4 style='color:#33691e'>Investment Plan</h4>"
-            f"<p style='font-size:1rem;color:#2e7d32'>{plan_str}</p></div>",
-            unsafe_allow_html=True,
-        )
+
+        col_sig, col_rec = st.columns([1, 2])
+        with col_sig:
+            st.markdown("#### 🎯 Core Signal")
+            st.info(f"**{signal}**")
+        with col_rec:
+            st.markdown("#### ⚖️ Final Recommendation")
+            st.markdown(decision_str)
+        
+        st.markdown("---")
+        st.markdown("#### 📋 Investment Plan")
+        st.markdown(plan_str)
 
     with tab2:
         st.markdown("<h3 class='blue-text'>Agent Observations</h3>", unsafe_allow_html=True)
@@ -561,9 +561,36 @@ if st.session_state.result is not None:
             else:
                 st.info("No risk discussion history recorded.")
 
-    if st.button("🔄 Clear Results & Start New Analysis"):
-        st.session_state.result = None
-        st.rerun()
+    st.markdown("<br>", unsafe_allow_html=True)
+    c_clear, c_export = st.columns(2)
+    with c_clear:
+        if st.button("🔄 Clear Results & Start New Analysis", use_container_width=True):
+            st.session_state.result = None
+            st.rerun()
+    with c_export:
+        # Build markdown report string
+        report_lines = [
+            f"# Trading Analysis Report: {ticker}", 
+            f"Generated on: {datetime.date.today()}\n",
+            f"## 🎯 Core Signal: {signal}\n",
+            "## ⚖️ Final Recommendation",
+            f"{final_state.get('final_trade_decision', 'N/A')}\n",
+            "## 📋 Investment Plan",
+            f"{final_state.get('investment_plan', 'N/A')}\n",
+            "## 📝 Analyst Reports"
+        ]
+        
+        for a in ["market", "sentiment", "news", "fundamentals"]:
+            if final_state.get(f"{a}_report"):
+                report_lines.append(f"\n### {a.capitalize()} Report\n{final_state[f'{a}_report']}")
+                
+        st.download_button(
+            label="💾 Export Report as Markdown",
+            data="\n".join(report_lines),
+            file_name=f"{ticker}_Analysis_Report.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
 
 # ---- Footer ----
 st.markdown("<hr style='margin:30px 0 15px 0'/>", unsafe_allow_html=True)
